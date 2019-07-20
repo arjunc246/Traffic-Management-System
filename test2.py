@@ -26,9 +26,9 @@ if __name__=="__main__":
             diff = cv2.absdiff(bg.astype('uint8'), gray)
             thresholded = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)[1]
             cv2.imshow('Input',frame)
-            cv2.imshow('Dif',thresholded)
+            #cv2.imshow('Dif',thresholded)
             closing = cv2.morphologyEx(thresholded, cv2.MORPH_CLOSE, kernel)
-            cv2.imshow('closing', closing)
+            #cv2.imshow('closing', closing)
             opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)
             cv2.imshow('opening', opening)
             
