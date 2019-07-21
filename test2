@@ -1,0 +1,117 @@
+import cv2
+import numpy as np
+
+def fun(x):
+    pass
+def fun(x):
+    pass
+cv2.namedWindow("window")
+cv2.createTrackbar("blur","window",15,255,fun)
+cv2.createTrackbar("name","window",93,255,fun)
+cv2.createTrackbar("binary","window",12,255,fun)
+cv2.createTrackbar("erode","window",2,255,fun)
+cv2.createTrackbar("dilate","window",15,255,fun)
+cv2.createTrackbar("diff","window",100,1000,fun)
+cv2.createTrackbar("x","window",37,100,fun)
+cv2.createTrackbar("y","window",81,100,fun)
+cv2.createTrackbar("z","window",31,100,fun)
+cv2.createTrackbar("w","window",74,100,fun)
+canvas = np.ones((10, 10), np.uint8)
+
+if __name__ == "__main__":
+    #Parameters for croping#
+    top, right, bottom, left = 5, 10, 280, 180
+
+
+    vid = cv2.VideoCapture('latestData.mp4')
+    refIm = cv2.imread('refFrame.jpg', 0)
+    refIm=cv2.resize(refIm,(100,100))
+
+    while (vid.isOpened()):
+        ret, frame = vid.read()
+        #(h, w) = frame.shape[:2]
+        frame=cv2.resize(frame,(100,100))
+        x=cv2.getTrackbarPos("x","window")
+        y = cv2.getTrackbarPos("y", "window")
+        z = cv2.getTrackbarPos("z", "window")
+        w = cv2.getTrackbarPos("w", "window")
+        frame=frame[x:y,z:w]
+
+        vidClone = frame.copy()
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if ret == True:
+            k = cv2.getTrackbarPos("blur", "window")
+            k = k + 1 if k % 2 == 0 else k
+
+            reference_gray=refIm.copy()
+            img_gray=gray.copy()
+
+
+            img_gray = cv2.GaussianBlur(img_gray, (k, k), 0)
+            reference_gray = cv2.GaussianBlur(reference_gray, (k, k), 0)
+            img_gray = cv2.GaussianBlur(img_gray, (k, k), 0)
+            reference_gray = cv2.GaussianBlur(reference_gray, (k, k), 0)
+
+            img_gray = cv2.equalizeHist(img_gray)
+            reference_gray = cv2.equalizeHist(reference_gray)
+
+            img_gray = cv2.resize(img_gray, (100, 100))
+            reference_gray = cv2.resize(reference_gray, (100, 100))
+
+            dif_thresh = cv2.getTrackbarPos("diff", "window")
+
+            for i in range(0, img_gray.shape[0]):
+                for j in range(0, img_gray.shape[1]):
+                    if (abs(img_gray[i][j] - reference_gray[i][j]) < dif_thresh):
+                        img_gray[i][j]=0
+                    else:
+                        img_gray[i][j]=255
+
+            diff = cv2.absdiff(reference_gray.copy(), img_gray.copy())
+            # histogram equalization on diff will not work#
+
+            thresh = cv2.getTrackbarPos("name", "window")
+            bin = cv2.getTrackbarPos("binary", "window")
+            _, diff = cv2.threshold(diff, bin, 255, cv2.THRESH_BINARY)
+
+            # img_gray=cv2.equalizeHist(img_gray)
+
+            eroded = cv2.getTrackbarPos("erode", "window")
+            diff = cv2.erode(diff, None, iterations=eroded)
+
+            dilated = cv2.getTrackbarPos("dilate", "window")
+            diff = cv2.dilate(diff, None, iterations=dilated)
+
+            cv2.imshow("difference",diff)
+            disp = [reference_gray, img_gray, diff,vidClone]
+            window = ["ref_gray", "image_gray", "difference","original"]
+            for i, j in zip(disp, window):
+                cv2.imshow(j, i)
+            contour,_=cv2.findContours(diff ,cv2.RETR_EXTERNAL , cv2.CHAIN_APPROX_NONE)
+            if len(contour)>1:
+                cv2.drawContours(vidClone,contour,-1,(0,255,0),3)
+            cv2.imshow("cloned",vidClone)
+            for i in range(len(contour)):
+                z=cv2.drawContours(vidClone,contour,i,(0,255,0))
+                M=cv2.moments(contour[i])
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+                area=cv2.contourArea(contour[i])
+                cv2.putText(vidClone,str(area),(cx-10,cy-10),cv2.FONT_HERSHEY_SIMPLEX,0.5, (0, 0, 255), 2)
+
+            cv2.imshow("cloned", vidClone)
+            max=0
+            for i in contour:
+                print(cv2.contourArea(i))
+
+        #cv2.imshow("dilated",dilated)
+            keypress = cv2.waitKey(1) & 0xFF
+
+            # if the user pressed "q", then stop looping
+            if keypress == ord('q'):
+                break
+
+vid.release
+cv2.destroyAllWindows()
+
+
